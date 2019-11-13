@@ -69,6 +69,16 @@ glm::mat4 Matrix_Translate(float tx, float ty, float tz)
     );
 }
 
+glm::mat4 Matrix_Translate(glm::vec4 t)
+{
+    return Matrix(
+        1.0f , 0.0f , 0.0f , t.x ,
+        0.0f , 1.0f , 0.0f , t.y ,
+        0.0f , 0.0f , 1.0f , t.z ,
+        0.0f , 0.0f , 0.0f , 1.0f
+    );
+}
+
 // Matriz S de "escalamento de um ponto" em relação à origem do sistema de
 // coordenadas. Seja p=[px,py,pz,pw] um ponto em coordenadas homogêneas.
 // Então, a matriz S é definida pela seguinte igualdade:

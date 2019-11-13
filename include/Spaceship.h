@@ -26,6 +26,7 @@ class Spaceship
     protected:
 
     private:
+
 };
 
 #endif // SPACESHIP_H

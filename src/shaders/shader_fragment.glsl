@@ -25,9 +25,8 @@ uniform mat4 view;
 uniform mat4 projection;
 
 // Identificador que define qual objeto está sendo desenhado no momento
-#define SPHERE 0
-#define BUNNY  1
-#define PLANE  2
+#define SPACESHIP 0
+#define ASTEROID  1
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -87,11 +86,19 @@ void main()
     float U = 0.0;
     float V = 0.0;
 
+    vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
+
     switch (object_id) {
-    case SPHERE:
-        vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
+    case SPACESHIP:
         spherical_mapping(bbox_center, position_model, U, V);
         Kd = material_diffuse;
+        Ks = material_speculate;
+        Ka = material_environment;
+        q  = material_specular_exponent;
+        break;
+    case ASTEROID:
+        spherical_mapping(bbox_center, position_model, U, V);
+        Kd = texture(TextureImage0, vec2(U,V)).rgb;
         Ks = material_speculate;
         Ka = material_environment;
         q  = material_specular_exponent;
@@ -102,7 +109,7 @@ void main()
     vec3 I = vec3(1.0, 1.0, 1.0);
 
     // Espectro da luz ambiente
-    vec3 Ia = vec3(0.2, 0.2, 0.2);
+    vec3 Ia = vec3(0.1, 0.1, 0.1);
 
     // Termo difuso utilizando a lei dos cossenos de Lambert
     vec3 lambert_diffuse_term = Kd * I * max(0, dot(n, l));
