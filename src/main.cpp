@@ -43,6 +43,7 @@
 
 // model
 #include "Spaceship.h"
+#include "Asteroid.h"
 #include "obj_model.h"
 
 unsigned int loadCubemap(std::vector<std::string> faces);
@@ -147,6 +148,7 @@ GLuint g_NumLoadedTextures = 0;
 ///////////////////////////////////
 // Lógica do jogo
 Spaceship spaceship = Spaceship();
+Asteroid asteroid = Asteroid(); // por enquanto um asteroid só kkk
 
 // timing
 float deltaTime = 0.0f;
@@ -240,13 +242,16 @@ int main(int argc, char* argv[])
     glUseProgram(0);
 
 //    // Carregamos duas imagens para serem utilizadas como textura
-//    LoadTextureImage("../../data/tc-earth_daymap_surface.jpg");      // TextureImage0
+    LoadTextureImage("../../data/texture/basalt.jpg");      // TextureImage0
 //    LoadTextureImage("../../data/tc-earth_nightmap_citylights.gif"); // TextureImage1
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
     ObjModel spheremodel("../../data/SpaceShip.obj", "../../data/");
     ComputeNormals(&spheremodel);
     BuildTrianglesAndAddToVirtualScene(&spheremodel);
+    ObjModel asteroidModel("../../data/asteroid.obj", "../../data/");
+    ComputeNormals(&asteroidModel);
+    BuildTrianglesAndAddToVirtualScene(&asteroidModel);
 
     if ( argc > 1 )
     {
@@ -408,6 +413,7 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
         #define SPACESHIP 0
+        #define ASTEROID  1
         // Desenhamos o modelo da nave
         glm::vec4 direction        = spaceship.cartesianDirection();
         glm::vec4 dir_speed_scaled = direction * spaceship.speedGap(deltaTime);
@@ -423,6 +429,16 @@ int main(int argc, char* argv[])
         glUniform1i(object_id_uniform, SPACESHIP);
         DrawVirtualObject("Cube_Cube_Base");
         DrawVirtualObject("Cube_Cube_Black");
+
+        model = Matrix_Identity();
+        model = Matrix_Translate(asteroid.position)
+              * Matrix_Rotate_Z((float)glfwGetTime() * asteroid.rotate_xyz.z)
+              * Matrix_Rotate_X((float)glfwGetTime() * asteroid.rotate_xyz.x)
+              * Matrix_Rotate_Y((float)glfwGetTime() * asteroid.rotate_xyz.y)
+              * Matrix_Scale(0.2f, 0.2f, 0.2f);
+        glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(object_id_uniform, ASTEROID);
+        DrawVirtualObject("asteroid1");
 
         // para a camera seguir a nave
 //        glm::vec4 delta_position  = new_position - old_position;
