@@ -3,13 +3,6 @@
 #include <algorithm>
 #include <math.h>
 
-#define PI 3.1415
-#define MAX_SPEED 50.0
-#define SPEED_INCREMENT 0.5
-#define SPEED_DEINCREMENT 2.0
-#define THETA_INCREMENT 0.1745 // 10º
-
-
 Spaceship::Spaceship()
 {
     speed = 0.0f;
@@ -23,26 +16,32 @@ Spaceship::~Spaceship()
     //dtor
 }
 
-void Spaceship::speedUp()
+void Spaceship::speedUp(float deltaTime)
 {
-    speed = std::min(MAX_SPEED, speed + SPEED_INCREMENT);
+    speed = std::min(MAX_SPEED, speed + (deltaTime * SPEED_INCREMENT));
 }
 
-void Spaceship::brake()
+void Spaceship::brake(float deltaTime)
 {
-    speed = std::max(0.0, speed - SPEED_DEINCREMENT);
+    speed = std::max(0.0, speed - (deltaTime * SPEED_DEINCREMENT));
 }
 
-void Spaceship::bendLeft()
+void Spaceship::bendLeft(float deltaTime)
 {
-    // theta = (((theta + PI) + THETA_INCREMENT) % 2*PI) - PI;
-    theta = theta + THETA_INCREMENT;
+    theta = theta + (deltaTime * THETA_INCREMENT);
+    if (theta > THETA_MAX)
+        theta = THETA_MIN + (theta - THETA_MAX);
+    if (theta < THETA_MIN)
+        theta = THETA_MAX + (theta - THETA_MIN);
 }
 
-void Spaceship::bendRight()
+void Spaceship::bendRight(float deltaTime)
 {
-    // theta = (((theta + PI) - THETA_INCREMENT) % 2*PI) - PI;
-    theta = theta - THETA_INCREMENT;
+    theta = theta - (deltaTime * THETA_INCREMENT);
+    if (theta > THETA_MAX)
+        theta = THETA_MIN + (theta - THETA_MAX);
+    if (theta < THETA_MIN)
+        theta = THETA_MAX + (theta - THETA_MIN);
 }
 
 glm::vec4 Spaceship::cartesianDirection()

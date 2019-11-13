@@ -47,7 +47,6 @@ out vec3 color;
 
 // functions declarations
 void spherical_mapping(in vec4 center, in vec4 position, out float U, out float V);
-vec4 normalize(in vec4 vector, in vec4 min_lenght, in vec4 max_leght);
 
 void main()
 {
@@ -136,11 +135,4 @@ void spherical_mapping(in vec4 center, in vec4 position, out float U, out float 
 
     U = (theta + M_PI) / (2*M_PI);
     V = (phi + M_PI_2) / M_PI;
-}
-
-vec4 normalize(in vec4 vector, in vec4 min_lenght, in vec4 max_leght) {
-    float x = (vector.x - min_lenght.x) / (max_leght.x - min_lenght.x);
-    float y = (vector.y - min_lenght.y) / (max_leght.y - min_lenght.y);
-    float z = (vector.z - min_lenght.z) / (max_leght.z - min_lenght.z);
-    return vec4(x, y, z, 1.0);
 }
