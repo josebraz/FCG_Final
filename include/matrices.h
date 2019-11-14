@@ -330,6 +330,14 @@ glm::mat4 Matrix_Perspective(float field_of_view, float aspect, float n, float f
     return -M*P;
 }
 
+glm::vec4 toCartesianFromSpherical(float r, float theta, float phi) {
+    return glm::vec4(r * cos(phi) * sin(theta),
+                     r * sin(phi),
+                     r * cos(phi) * cos(theta),
+                     1.0f);
+}
+
+
 // Função que imprime uma matriz M no terminal
 void PrintMatrix(glm::mat4 M)
 {

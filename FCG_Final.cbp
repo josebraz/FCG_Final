@@ -345,8 +345,6 @@
 		</Unit>
 		<Unit filename="src/main.cpp" />
 		<Unit filename="src/obj_model.h" />
-		<Unit filename="src/shader_fragment.glsl" />
-		<Unit filename="src/shader_vertex.glsl" />
 		<Unit filename="src/shaders/shader_fragment.glsl" />
 		<Unit filename="src/shaders/shader_vertex.glsl" />
 		<Unit filename="src/shaders/skybox.fs" />

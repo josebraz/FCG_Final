@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 
 #include <map>
 #include <stack>
@@ -46,7 +47,21 @@
 #include "Asteroid.h"
 #include "obj_model.h"
 
+/// Configurations
+#define MAX_ASTEROIDS 10
+#define ASTEROIDS_SPAWN_DISTANCE 20 // distance relative to spaceship
+#define ASTEROIDS_DESTROY_DISTANCE 40 // distance relative to spaceship
+
+#define SPACESHIP 0
+#define ASTEROID  1
+
+#define PHI_MAX 1.570796f
+#define PHI_MIN -1.570796f
+#define THETA_MAX 3.1415f
+#define THETA_MIN -3.1415f
+
 unsigned int loadCubemap(std::vector<std::string> faces);
+Asteroid generateNewAsteroid();
 
 // Declaração de várias funções utilizadas em main().  Essas estão definidas
 // logo após a definição de main() neste arquivo.
@@ -141,7 +156,7 @@ GLuint g_NumLoadedTextures = 0;
 ///////////////////////////////////
 // Lógica do jogo
 Spaceship spaceship = Spaceship();
-Asteroid asteroid = Asteroid(); // por enquanto um asteroid só kkk
+std::vector<Asteroid> asteroids;
 
 // timing
 float deltaTime = 0.0f;
@@ -163,6 +178,9 @@ int main(int argc, char* argv[])
         fprintf(stderr, "ERROR: glfwInit() failed.\n");
         std::exit(EXIT_FAILURE);
     }
+
+    // start rand numbers
+    srand(time(NULL));
 
     // Definimos o callback para impressão de erros da GLFW no terminal
     glfwSetErrorCallback(ErrorCallback);
@@ -275,6 +293,9 @@ int main(int argc, char* argv[])
     glm::mat4 the_model;
     glm::mat4 the_view;
 
+    float nearplane = -0.1f;  // Posição do "near plane"
+    float farplane  = -40.0f; // Posição do "far plane"
+
     //// SKY BOX INIT
     Shader skyboxShader("../../src/shaders/skybox.vs", "../../src/shaders/skybox.fs");
     float skyboxVertices[] = {
@@ -343,6 +364,7 @@ int main(int argc, char* argv[])
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
 
+    asteroids.push_back(generateNewAsteroid());
 
     // Ficamos em loop, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
@@ -384,11 +406,6 @@ int main(int argc, char* argv[])
         // Agora computamos a matriz de Projeção.
         glm::mat4 projection;
 
-        // Note que, no sistema de coordenadas da câmera, os planos near e far
-        // estão no sentido negativo! Veja slides 190-193 do documento "Aula_09_Projecoes.pdf".
-        float nearplane = -0.1f;  // Posição do "near plane"
-        float farplane  = -30.0f; // Posição do "far plane"
-
         if (g_UsePerspectiveProjection)
         {
             float field_of_view = 3.141592 / 3.0f;
@@ -413,21 +430,45 @@ int main(int argc, char* argv[])
         if (downKeyPressed)
             spaceship.brake(deltaTime);
 
-        glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
-
-        // Enviamos as matrizes "view" e "projection" para a placa de vídeo
-        // (GPU). Veja o arquivo "shader_vertex.glsl", onde estas são
-        // efetivamente aplicadas em todos os pontos.
+        glm::mat4 model = Matrix_Identity();
         glUniformMatrix4fv(view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
-        #define SPACESHIP 0
-        #define ASTEROID  1
+        // asteroids logic
+        float random_float = static_cast <float> (rand()) / static_cast <float> (RAND_MAX * deltaTime);
+        if (random_float < 0.5 && asteroids.size() < MAX_ASTEROIDS) {
+            asteroids.push_back(generateNewAsteroid());
+        }
+
+        // remove asteroid very far
+        auto it = asteroids.begin();
+        while (it != asteroids.end()) {
+            Asteroid asteroid = *it;
+            glm::vec4 vecRelative = asteroid.position - spaceship.position;
+            if (norm(vecRelative) >= ASTEROIDS_DESTROY_DISTANCE) {
+                it = asteroids.erase(it);
+            } else {
+                it++;
+            }
+        }
+
+        for (int i = 0; i < asteroids.size(); i++) {
+            asteroids[i].computeNextPosition(deltaTime);
+            model = Matrix_Translate(asteroids[i].position)
+                  * Matrix_Rotate_Z((float)glfwGetTime() * asteroids[i].rotation.z)
+                  * Matrix_Rotate_X((float)glfwGetTime() * asteroids[i].rotation.x)
+                  * Matrix_Rotate_Y((float)glfwGetTime() * asteroids[i].rotation.y)
+                  * Matrix_Scale(asteroids[i].scale, asteroids[i].scale, asteroids[i].scale);
+            glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniform1i(object_id_uniform, ASTEROID);
+            DrawVirtualObject("asteroid1");
+        }
+
         // Desenhamos o modelo da nave
         glm::vec4 direction        = spaceship.cartesianDirection();
         glm::vec4 dir_speed_scaled = direction * spaceship.speedGap(deltaTime);
         glm::vec4 new_position     = dir_speed_scaled + spaceship.position;
-        glm::vec4 old_position     = spaceship.position;
+        // glm::vec4 old_position     = spaceship.position;
         spaceship.position         = new_position;
         model = Matrix_Translate(new_position.x, new_position.y, new_position.z)
 //              * Matrix_Rotate_Z(0.0f)
@@ -438,26 +479,6 @@ int main(int argc, char* argv[])
         glUniform1i(object_id_uniform, SPACESHIP);
         DrawVirtualObject("Cube_Cube_Base");
         DrawVirtualObject("Cube_Cube_Black");
-
-        model = Matrix_Identity();
-        model = Matrix_Translate(asteroid.position)
-              * Matrix_Rotate_Z((float)glfwGetTime() * asteroid.rotate_xyz.z)
-              * Matrix_Rotate_X((float)glfwGetTime() * asteroid.rotate_xyz.x)
-              * Matrix_Rotate_Y((float)glfwGetTime() * asteroid.rotate_xyz.y)
-              * Matrix_Scale(0.2f, 0.2f, 0.2f);
-        glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(object_id_uniform, ASTEROID);
-        DrawVirtualObject("asteroid1");
-
-        // para a camera seguir a nave
-//        glm::vec4 delta_position  = new_position - old_position;
-//        x += delta_position.x;
-//        y += delta_position.y;
-//        z += delta_position.z;
-//        g_CameraDistance = sqrt(x*x + y*y + z*z);
-//        g_CameraPhi = asin(y/g_CameraDistance);
-//        g_CameraTheta = atan2(x, z);
-//        std::cout << g_CameraDistance << " " << g_CameraPhi << " " << g_CameraTheta << std::endl;
 
         TextRendering_ShowFramesPerSecond(window);
 
@@ -884,6 +905,37 @@ unsigned int loadCubemap(std::vector<std::string> faces)
     return textureID;
 }
 
+// gerar os asteroides em um raio maximo com relação a nave
+// e garantir que eles venha em direção a nave
+Asteroid generateNewAsteroid() {
+    // converter para coordenadas esfericas
+    glm::vec4 c = spaceship.position;
+    glm::vec4 p_line = glm::vec4(c.x + ASTEROIDS_SPAWN_DISTANCE,
+                                 c.y + ASTEROIDS_SPAWN_DISTANCE,
+                                 c.z + ASTEROIDS_SPAWN_DISTANCE,
+                                 1.0f);
+    glm::vec4 p = p_line - c;
+    float rho = norm(p);
+    float phi = PHI_MIN + static_cast <float> (rand()) /(static_cast<float>(RAND_MAX/(PHI_MAX-PHI_MIN)));
+    float theta = THETA_MIN + static_cast <float> (rand()) /(static_cast<float>(RAND_MAX/(THETA_MAX-THETA_MIN)));
+    float anti_theta = theta > 0 ? theta - PI : theta + PI;
+    float anti_phi = -phi;
+
+    glm::vec4 displacement = c - glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    glm::vec4 start_position = toCartesianFromSpherical(rho, theta, phi) + displacement;
+    glm::vec4 end_position = toCartesianFromSpherical(rho, anti_theta, anti_phi) + displacement;
+
+    std::vector<glm::vec4> controlPoints = {start_position,
+                                            spaceship.position, // TODO
+                                            spaceship.position, // TODO
+                                            end_position};
+    Asteroid newAsteroid(start_position, controlPoints);
+
+    return newAsteroid;
+}
+
+///////////////////////////////////////////////
+
 // Definição da função que será chamada sempre que a janela do sistema
 // operacional for redimensionada
 void FramebufferSizeCallback(GLFWwindow* window, int width, int height)
@@ -988,9 +1040,6 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 
     if (g_RightMouseButtonPressed)
     {
-        // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
-        float dx = xpos - g_LastCursorPosX;
-        float dy = ypos - g_LastCursorPosY;
 
         // Atualizamos as variáveis globais para armazenar a posição atual do
         // cursor como sendo a última posição conhecida do cursor.
@@ -1000,10 +1049,6 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 
     if (g_MiddleMouseButtonPressed)
     {
-        // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
-        float dx = xpos - g_LastCursorPosX;
-        float dy = ypos - g_LastCursorPosY;
-
         // Atualizamos as variáveis globais para armazenar a posição atual do
         // cursor como sendo a última posição conhecida do cursor.
         g_LastCursorPosX = xpos;
@@ -1014,15 +1059,8 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 // Função callback chamada sempre que o usuário movimenta a "rodinha" do mouse.
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    // Atualizamos a distância da câmera para a origem utilizando a
-    // movimentação da "rodinha", simulando um ZOOM.
     g_CameraDistance -= 0.1f*yoffset;
 
-    // Uma câmera look-at nunca pode estar exatamente "em cima" do ponto para
-    // onde ela está olhando, pois isto gera problemas de divisão por zero na
-    // definição do sistema de coordenadas da câmera. Isto é, a variável abaixo
-    // nunca pode ser zero. Versões anteriores deste código possuíam este bug,
-    // o qual foi detectado pelo aluno Vinicius Fraga (2017/2).
     const float verysmallnumber = std::numeric_limits<float>::epsilon();
     if (g_CameraDistance < verysmallnumber)
         g_CameraDistance = verysmallnumber;
