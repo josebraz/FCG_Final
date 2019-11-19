@@ -208,6 +208,21 @@ glm::vec4 crossproduct(glm::vec4 u, glm::vec4 v)
     );
 }
 
+// Produto escalar
+glm::vec4 scalarproduct(glm::vec4 u, float a)
+{
+    float u1 = u.x;
+    float u2 = u.y;
+    float u3 = u.z;
+
+    return glm::vec4(
+        u1 * a, // Primeiro coeficiente
+        u2 * a, // Segundo coeficiente
+        u3 * a, // Terceiro coeficiente
+        0.0f // w = 0 para vetores.
+    );
+}
+
 // Produto escalar entre dois vetores u e v definidos em um sistema de
 // coordenadas ortonormal.
 float dotproduct(glm::vec4 u, glm::vec4 v)

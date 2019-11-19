@@ -62,6 +62,10 @@
 
 unsigned int loadCubemap(std::vector<std::string> faces);
 Asteroid generateNewAsteroid();
+bool testInterseption(Asteroid asteroid, Spaceship spaceship);
+bool testInterseption(Asteroid asteroid1, Asteroid asteroid2);
+bool testInterseption(glm::vec4 center_sphere, float radius_sphere,
+                      glm::vec4 center_radius, glm::vec4 direction_radius);
 
 // Declaração de várias funções utilizadas em main().  Essas estão definidas
 // logo após a definição de main() neste arquivo.
@@ -480,6 +484,21 @@ int main(int argc, char* argv[])
         DrawVirtualObject("Cube_Cube_Base");
         DrawVirtualObject("Cube_Cube_Black");
 
+        // Test interception
+        for (int i = 0; i < asteroids.size(); i++) {
+            if (testInterseption(asteroids[i], spaceship)) {
+                std::cout << "Asteroid ! Spaceship" << std::endl;
+            }
+
+            for (int j = i+1; j < asteroids.size(); j++) {
+                if (testInterseption(asteroids[i], asteroids[j])) {
+                    std::cout << "Asteroid ! Asteroid" << std::endl;
+                }
+            }
+
+            // TODO: testar tiro com asteroid
+        }
+
         TextRendering_ShowFramesPerSecond(window);
 
         // draw skybox as last
@@ -655,6 +674,35 @@ void ComputeNormals(ObjModel* model)
         model->attrib.normals[3*i + 2] = n.z;
     }
 }
+
+// teste esfera-triangulo
+bool testInterseption(Asteroid asteroid, Spaceship spaceship) {
+    float C = 0.05; // TODO: achar o melhor valor (depende do modelo)
+    float radius = (1/asteroid.scale) * C;
+
+    // TODO: ...
+    return false;
+}
+
+bool testInterseption(Asteroid asteroid1, Asteroid asteroid2) {
+    float C = 0.05; // TODO: achar o melhor valor (depende do modelo)
+    float r1 = (1/asteroid1.scale) * C;
+    float r2 = (1/asteroid2.scale) * C;
+    float distance = norm(asteroid1.position - asteroid2.position);
+    return (r1 + r2) > distance;
+}
+
+// teste raio-reta
+bool testInterseption(glm::vec4 center_sphere, float radius_sphere,
+                      glm::vec4 center_radius, glm::vec4 direction_radius) {
+    float A = std::pow(norm(direction_radius), 2);
+    float B = dotproduct(scalarproduct(direction_radius, 2.0f), (center_radius - center_sphere));
+    float C = std::pow(norm(center_radius - center_sphere), 2) - std::pow(radius_sphere, 2);
+
+    float delta = std::pow(B, 2) - 4 * A * C;
+    return delta >= 0;
+}
+
 
 // Constrói triângulos para futura renderização a partir de um ObjModel.
 void BuildTrianglesAndAddToVirtualScene(ObjModel* model)
