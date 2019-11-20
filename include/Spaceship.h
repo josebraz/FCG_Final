@@ -21,6 +21,7 @@ class Spaceship
         float theta; // Planar direction
         float phi; // Angular direction
         glm::vec4 position;
+        float scale = 0.3f;
 
         Spaceship();
         virtual ~Spaceship();

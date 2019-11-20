@@ -62,7 +62,7 @@
 
 unsigned int loadCubemap(std::vector<std::string> faces);
 Asteroid generateNewAsteroid();
-bool testInterseption(Asteroid asteroid, Spaceship spaceship);
+bool testInterseption(Asteroid asteroid, Spaceship spaceship, glm::mat4 model);
 bool testInterseption(Asteroid asteroid1, Asteroid asteroid2);
 bool testInterseption(glm::vec4 center_sphere, float radius_sphere,
                       glm::vec4 center_radius, glm::vec4 direction_radius);
@@ -116,7 +116,7 @@ struct SceneObject
     GLuint       vertex_array_object_id; // ID do VAO onde estão armazenados os atributos do modelo
     glm::vec3    bbox_min; // Axis-Aligned Bounding Box do objeto
     glm::vec3    bbox_max;
-    glm::vec3    Kd; // componente difusa obtido pelo material
+    std::vector<glm::vec4> vertices;
 };
 
 std::map<std::string, SceneObject> g_VirtualScene;
@@ -478,7 +478,7 @@ int main(int argc, char* argv[])
 //              * Matrix_Rotate_Z(0.0f)
               * Matrix_Rotate_X(spaceship.phi)
               * Matrix_Rotate_Y(spaceship.theta)
-              * Matrix_Scale(0.3f, 0.3f, 0.3f);
+              * Matrix_Scale(spaceship.scale, spaceship.scale, spaceship.scale);
         glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(object_id_uniform, SPACESHIP);
         DrawVirtualObject("Cube_Cube_Base");
@@ -486,7 +486,7 @@ int main(int argc, char* argv[])
 
         // Test interception
         for (int i = 0; i < asteroids.size(); i++) {
-            if (testInterseption(asteroids[i], spaceship)) {
+            if (testInterseption(asteroids[i], spaceship, model)) {
                 std::cout << "Asteroid ! Spaceship" << std::endl;
             }
 
@@ -676,11 +676,27 @@ void ComputeNormals(ObjModel* model)
 }
 
 // teste esfera-triangulo
-bool testInterseption(Asteroid asteroid, Spaceship spaceship) {
-    float C = 0.05; // TODO: achar o melhor valor (depende do modelo)
-    float radius = (1/asteroid.scale) * C;
-
-    // TODO: ...
+bool testInterseption(Asteroid asteroid, Spaceship spaceship, glm::mat4 model) {
+    // 1) teste esfera-esfera (barato)
+    float sphere_radius = (1/asteroid.scale) * 0.05;
+    float spaceship_radius = (1/spaceship.scale) * 0.35;
+    float distance = norm(asteroid.position - spaceship.position);
+    if ((sphere_radius + spaceship_radius) > distance) {
+        // 2) caso passar, testar se algum vertice do modelo da
+        //    nave está dentro da esfera. esfera-ponto (custoso)
+        std::vector<glm::vec4> vertices = g_VirtualScene["Cube_Cube_Base"].vertices;
+        for (int i = 0; i < g_VirtualScene["Cube_Cube_Black"].vertices.size(); i++) {
+            vertices.push_back(g_VirtualScene["Cube_Cube_Black"].vertices[i]);
+        }
+        for (int i = 0; i < vertices.size(); i++) {
+            // scale, rotate, ...
+            glm::vec4 vertice = matrixVectorProduct(model, vertices[i]);
+            float distance = norm(vertice - asteroid.position);
+            if (distance < sphere_radius) {
+                return true;
+            }
+        }
+    }
     return false;
 }
 
@@ -721,6 +737,8 @@ void BuildTrianglesAndAddToVirtualScene(ObjModel* model)
     std::vector<float>  material_environment_coefficients;
     std::vector<float>  material_specular_exponent_coefficients;
 
+    std::vector<glm::vec4> vertices;
+
     for (size_t shape = 0; shape < model->shapes.size(); ++shape)
     {
         size_t first_index = indices.size();
@@ -751,6 +769,7 @@ void BuildTrianglesAndAddToVirtualScene(ObjModel* model)
                 model_coefficients.push_back( vy ); // Y
                 model_coefficients.push_back( vz ); // Z
                 model_coefficients.push_back( 1.0f ); // W
+                vertices.push_back(glm::vec4(vx, vy, vz, 1.0f));
 
                 bbox_min.x = std::min(bbox_min.x, vx);
                 bbox_min.y = std::min(bbox_min.y, vy);
@@ -804,13 +823,14 @@ void BuildTrianglesAndAddToVirtualScene(ObjModel* model)
         size_t last_index = indices.size() - 1;
 
         SceneObject theobject;
-        theobject.name           = model->shapes[shape].name;
-        theobject.first_index    = first_index; // Primeiro índice
-        theobject.num_indices    = last_index - first_index + 1; // Número de indices
-        theobject.rendering_mode = GL_TRIANGLES;       // Índices correspondem ao tipo de rasterização GL_TRIANGLES.
+        theobject.name                   = model->shapes[shape].name;
+        theobject.first_index            = first_index; // Primeiro índice
+        theobject.num_indices            = last_index - first_index + 1; // Número de indices
+        theobject.rendering_mode         = GL_TRIANGLES;       // Índices correspondem ao tipo de rasterização GL_TRIANGLES.
         theobject.vertex_array_object_id = vertex_array_object_id;
-        theobject.bbox_min = bbox_min;
-        theobject.bbox_max = bbox_max;
+        theobject.bbox_min               = bbox_min;
+        theobject.bbox_max               = bbox_max;
+        theobject.vertices               = vertices;
 
         g_VirtualScene[model->shapes[shape].name] = theobject;
     }

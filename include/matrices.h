@@ -166,6 +166,14 @@ float norm(glm::vec4 v)
     return sqrt( vx*vx + vy*vy + vz*vz );
 }
 
+glm::vec4 matrixVectorProduct(glm::mat4 m, glm::vec4 v) {
+    float vx = m[0][0] * v.x + m[0][1] * v.y + m[0][2] * v.z + m[0][3];
+    float vy = m[1][0] * v.x + m[1][1] * v.y + m[1][2] * v.z + m[1][3];
+    float vz = m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z + m[2][3];
+    float vw = 1.0f;
+    return glm::vec4(vx, vy, vz, vw);
+}
+
 // Matriz R de "rotação de um ponto" em relação à origem do sistema de
 // coordenadas e em torno do eixo definido pelo vetor 'axis'. Esta matriz pode
 // ser definida pela fórmula de Rodrigues. Lembre-se que o vetor que define o
