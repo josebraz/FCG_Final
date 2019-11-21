@@ -48,9 +48,9 @@
 #include "obj_model.h"
 
 /// Configurations
-#define MAX_ASTEROIDS 10
+#define MAX_ASTEROIDS 15
 #define ASTEROIDS_SPAWN_DISTANCE 20 // distance relative to spaceship
-#define ASTEROIDS_DESTROY_DISTANCE 40 // distance relative to spaceship
+#define ASTEROIDS_DESTROY_DISTANCE 25 // distance relative to spaceship
 
 #define SPACESHIP 0
 #define ASTEROID  1
@@ -62,6 +62,7 @@
 
 unsigned int loadCubemap(std::vector<std::string> faces);
 Asteroid generateNewAsteroid();
+void gameOver();
 bool testInterseption(Asteroid asteroid, Spaceship spaceship, glm::mat4 model);
 bool testInterseption(Asteroid asteroid1, Asteroid asteroid2);
 bool testInterseption(glm::vec4 center_sphere, float radius_sphere,
@@ -95,6 +96,7 @@ void TextRendering_PrintMatrixVectorProductDivW(GLFWwindow* window, glm::mat4 M,
 // outras informações do programa. Definidas após main().
 void TextRendering_ShowModelViewProjection(GLFWwindow* window, glm::mat4 projection, glm::mat4 view, glm::mat4 model, glm::vec4 p_model);
 void TextRendering_ShowFramesPerSecond(GLFWwindow* window);
+void TextRendering_ShowSpaceshipLife(GLFWwindow* window);
 
 // Funções callback para comunicação com o sistema operacional e interação do
 // usuário. Veja mais comentários nas definições das mesmas, abaixo.
@@ -440,7 +442,7 @@ int main(int argc, char* argv[])
 
         // asteroids logic
         float random_float = static_cast <float> (rand()) / static_cast <float> (RAND_MAX * deltaTime);
-        if (random_float < 0.5 && asteroids.size() < MAX_ASTEROIDS) {
+        if (random_float < 0.4 && asteroids.size() < MAX_ASTEROIDS) {
             asteroids.push_back(generateNewAsteroid());
         }
 
@@ -487,19 +489,25 @@ int main(int argc, char* argv[])
         // Test interception
         for (int i = 0; i < asteroids.size(); i++) {
             if (testInterseption(asteroids[i], spaceship, model)) {
-                std::cout << "Asteroid ! Spaceship" << std::endl;
+                asteroids.erase(asteroids.begin() + i);
+                spaceship.life--;
+                if (spaceship.life <= 0) {
+                    gameOver();
+                }
             }
 
             for (int j = i+1; j < asteroids.size(); j++) {
                 if (testInterseption(asteroids[i], asteroids[j])) {
-                    std::cout << "Asteroid ! Asteroid" << std::endl;
+                    asteroids.erase(asteroids.begin() + i);
                 }
             }
 
             // TODO: testar tiro com asteroid
         }
 
+        // Print game information
         TextRendering_ShowFramesPerSecond(window);
+        TextRendering_ShowSpaceshipLife(window);
 
         // draw skybox as last
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
@@ -678,12 +686,14 @@ void ComputeNormals(ObjModel* model)
 // teste esfera-triangulo
 bool testInterseption(Asteroid asteroid, Spaceship spaceship, glm::mat4 model) {
     // 1) teste esfera-esfera (barato)
-    float sphere_radius = (1/asteroid.scale) * 0.05;
+    float sphere_radius = (1/asteroid.scale) * 0.04;
     float spaceship_radius = (1/spaceship.scale) * 0.35;
     float distance = norm(asteroid.position - spaceship.position);
     if ((sphere_radius + spaceship_radius) > distance) {
         // 2) caso passar, testar se algum vertice do modelo da
         //    nave está dentro da esfera. esfera-ponto (custoso)
+
+        // FIXME: aplicação das transformações nos pontos aparentemente não funciona
         std::vector<glm::vec4> vertices = g_VirtualScene["Cube_Cube_Base"].vertices;
         for (int i = 0; i < g_VirtualScene["Cube_Cube_Black"].vertices.size(); i++) {
             vertices.push_back(g_VirtualScene["Cube_Cube_Black"].vertices[i]);
@@ -701,7 +711,7 @@ bool testInterseption(Asteroid asteroid, Spaceship spaceship, glm::mat4 model) {
 }
 
 bool testInterseption(Asteroid asteroid1, Asteroid asteroid2) {
-    float C = 0.05; // TODO: achar o melhor valor (depende do modelo)
+    float C = 0.04;
     float r1 = (1/asteroid1.scale) * C;
     float r2 = (1/asteroid2.scale) * C;
     float distance = norm(asteroid1.position - asteroid2.position);
@@ -978,12 +988,7 @@ unsigned int loadCubemap(std::vector<std::string> faces)
 Asteroid generateNewAsteroid() {
     // converter para coordenadas esfericas
     glm::vec4 c = spaceship.position;
-    glm::vec4 p_line = glm::vec4(c.x + ASTEROIDS_SPAWN_DISTANCE,
-                                 c.y + ASTEROIDS_SPAWN_DISTANCE,
-                                 c.z + ASTEROIDS_SPAWN_DISTANCE,
-                                 1.0f);
-    glm::vec4 p = p_line - c;
-    float rho = norm(p);
+    float rho = ASTEROIDS_SPAWN_DISTANCE;
     float phi = PHI_MIN + static_cast <float> (rand()) /(static_cast<float>(RAND_MAX/(PHI_MAX-PHI_MIN)));
     float theta = THETA_MIN + static_cast <float> (rand()) /(static_cast<float>(RAND_MAX/(THETA_MAX-THETA_MIN)));
     float anti_theta = theta > 0 ? theta - PI : theta + PI;
@@ -1002,6 +1007,11 @@ Asteroid generateNewAsteroid() {
     return newAsteroid;
 }
 
+void gameOver() {
+    std::cout << "Game Over" << std::endl;
+    std::exit(0);
+
+}
 ///////////////////////////////////////////////
 
 // Definição da função que será chamada sempre que a janela do sistema
@@ -1270,6 +1280,22 @@ void TextRendering_ShowFramesPerSecond(GLFWwindow* window)
     float charwidth = TextRendering_CharWidth(window);
 
     TextRendering_PrintString(window, buffer, 1.0f-(numchars + 1)*charwidth, 1.0f-lineheight, 1.0f);
+}
+
+void TextRendering_ShowSpaceshipLife(GLFWwindow* window)
+{
+    if ( !g_ShowInfoText )
+        return;
+
+    std::stringstream ss;
+    ss << spaceship.life;
+    std::string life;
+    ss >> life;
+
+    float lineheight = TextRendering_LineHeight(window);
+    float charwidth = TextRendering_CharWidth(window);
+
+    TextRendering_PrintString(window, life, 0.0f- life.size()*charwidth, 0.3f-lineheight, 1.0f);
 }
 
 

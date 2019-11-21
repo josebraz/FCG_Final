@@ -22,6 +22,7 @@ class Spaceship
         float phi; // Angular direction
         glm::vec4 position;
         float scale = 0.3f;
+        int life = 10;
 
         Spaceship();
         virtual ~Spaceship();
