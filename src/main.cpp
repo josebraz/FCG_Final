@@ -45,6 +45,7 @@
 // model
 #include "Spaceship.h"
 #include "Asteroid.h"
+#include "Player.h"
 #include "obj_model.h"
 
 /// Configurations
@@ -97,6 +98,7 @@ void TextRendering_PrintMatrixVectorProductDivW(GLFWwindow* window, glm::mat4 M,
 void TextRendering_ShowModelViewProjection(GLFWwindow* window, glm::mat4 projection, glm::mat4 view, glm::mat4 model, glm::vec4 p_model);
 void TextRendering_ShowFramesPerSecond(GLFWwindow* window);
 void TextRendering_ShowSpaceshipLife(GLFWwindow* window);
+void TextRendering_ShowPlayerInfo(GLFWwindow* window);
 
 // Funções callback para comunicação com o sistema operacional e interação do
 // usuário. Veja mais comentários nas definições das mesmas, abaixo.
@@ -161,8 +163,10 @@ GLuint g_NumLoadedTextures = 0;
 
 ///////////////////////////////////
 // Lógica do jogo
+Player player = Player();
 Spaceship spaceship = Spaceship();
 std::vector<Asteroid> asteroids;
+
 
 // timing
 float deltaTime = 0.0f;
@@ -266,7 +270,7 @@ int main(int argc, char* argv[])
 
 //    // Carregamos duas imagens para serem utilizadas como textura
     LoadTextureImage("../../data/texture/basalt.jpg");      // TextureImage0
-//    LoadTextureImage("../../data/tc-earth_nightmap_citylights.gif"); // TextureImage1
+    LoadTextureImage("../../data/texture/steel.jpg");      // TextureImage1
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
     ObjModel spheremodel("../../data/SpaceShip.obj", "../../data/");
@@ -508,6 +512,7 @@ int main(int argc, char* argv[])
         // Print game information
         TextRendering_ShowFramesPerSecond(window);
         TextRendering_ShowSpaceshipLife(window);
+        TextRendering_ShowPlayerInfo(window);
 
         // draw skybox as last
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
@@ -710,6 +715,7 @@ bool testInterseption(Asteroid asteroid, Spaceship spaceship, glm::mat4 model) {
     return false;
 }
 
+// teste esfera-esfera
 bool testInterseption(Asteroid asteroid1, Asteroid asteroid2) {
     float C = 0.04;
     float r1 = (1/asteroid1.scale) * C;
@@ -1296,6 +1302,22 @@ void TextRendering_ShowSpaceshipLife(GLFWwindow* window)
     float charwidth = TextRendering_CharWidth(window);
 
     TextRendering_PrintString(window, life, 0.0f- life.size()*charwidth, 0.3f-lineheight, 1.0f);
+}
+
+void TextRendering_ShowPlayerInfo(GLFWwindow* window)
+{
+    if ( !g_ShowInfoText )
+        return;
+
+    std::stringstream ss;
+    ss << player.score;
+    std::string score;
+    ss >> score;
+
+    float lineheight = TextRendering_LineHeight(window);
+    float charwidth = TextRendering_CharWidth(window);
+
+    TextRendering_PrintString(window, "Score: " + score, -1.0f, -0.99f, 1.0f);
 }
 
 

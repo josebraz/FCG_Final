@@ -16,6 +16,18 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+// Identificador que define qual objeto está sendo desenhado no momento
+#define SPACESHIP 0
+#define ASTEROID  1
+uniform int object_id;
+
+// Parâmetros da axis-aligned bounding box (AABB) do modelo
+uniform vec4 bbox_min;
+uniform vec4 bbox_max;
+
+// Variáveis para acesso das imagens de textura
+uniform sampler2D TextureImage0;
+
 // Atributos de vértice que serão gerados como saída ("out") pelo Vertex Shader.
 // ** Estes serão interpolados pelo rasterizador! ** gerando, assim, valores
 // para cada fragmento, os quais serão recebidos como entrada pelo Fragment
@@ -23,12 +35,20 @@ uniform mat4 projection;
 out vec4 position_world;
 out vec4 position_model;
 out vec4 normal;
+out vec3 gouraud_color;
 out vec2 texcoords;
 
 out vec3 material_diffuse;
 out vec3 material_speculate;
 out vec3 material_environment;
 out float material_specular_exponent;
+
+// Constantes
+#define M_PI   3.14159265358979323846
+#define M_PI_2 1.57079632679489661923
+
+// functions declarations
+void spherical_mapping(in vec4 center, in vec4 position, out float U, out float V);
 
 void main()
 {
@@ -78,5 +98,48 @@ void main()
     material_speculate         = material_speculate_coefficients;
     material_environment       = material_environment_coefficients;
     material_specular_exponent = material_specular_exponent_coefficients;
+
+    if (object_id == ASTEROID) {
+        vec4 light_position = normalize(vec4(1.0,1.0,0.0,1.0));
+        vec4 l = normalize(light_position);
+        vec4 n = normalize(normal);
+
+        // Coordenadas de textura U e V
+        float U = 0.0;
+        float V = 0.0;
+
+        vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
+
+        spherical_mapping(bbox_center, model_coefficients, U, V);
+        vec3 Kd = texture(TextureImage0, vec2(U,V)).rgb;
+        vec3 Ka = material_environment_coefficients;
+
+        // Espectro da fonte de iluminação
+        vec3 I = vec3(1.0, 1.0, 1.0);
+
+        // Espectro da luz ambiente
+        vec3 Ia = vec3(0.1, 0.1, 0.1);
+
+        // Termo difuso utilizando a lei dos cossenos de Lambert
+        vec3 lambert_diffuse_term = Kd * I * max(0, dot(n, l));
+
+        // Termo ambiente
+        vec3 ambient_term = Ka * Ia;
+
+        gouraud_color = lambert_diffuse_term + ambient_term;
+        gouraud_color = pow(gouraud_color, vec3(1.0,1.0,1.0)/2.2);
+    } else {
+        gouraud_color = vec3(0.0, 0.0, 0.0);
+    }
+}
+
+void spherical_mapping(in vec4 center, in vec4 position, out float U, out float V) {
+    vec4 p_line = center + normalize(position - center);
+    vec4 p_vector = p_line - center;
+    float phi = asin(p_vector.y);
+    float theta = atan(p_vector.x, p_vector.z);
+
+    U = (theta + M_PI) / (2*M_PI);
+    V = (phi + M_PI_2) / M_PI;
 }
 

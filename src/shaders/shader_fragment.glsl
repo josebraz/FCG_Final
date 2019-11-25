@@ -10,6 +10,8 @@ in vec4 normal;
 // Posição do vértice atual no sistema de coordenadas local do modelo.
 in vec4 position_model;
 
+in vec3 gouraud_color;
+
 // Coordenadas de textura obtidas do arquivo OBJ (se existirem!)
 in vec2 texcoords;
 
@@ -34,12 +36,8 @@ uniform vec4 bbox_min;
 uniform vec4 bbox_max;
 
 // Variáveis para acesso das imagens de textura
-uniform sampler2D TextureImage0;
-uniform sampler2D TextureImage1;
+uniform sampler2D TextureImage1; // steel
 uniform sampler2D TextureImage2;
-
-// O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
-out vec3 color;
 
 // Constantes
 #define M_PI   3.14159265358979323846
@@ -48,8 +46,16 @@ out vec3 color;
 // functions declarations
 void spherical_mapping(in vec4 center, in vec4 position, out float U, out float V);
 
+// O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
+out vec3 color;
+
 void main()
 {
+    if (object_id == ASTEROID) {
+        color = gouraud_color;
+        return;
+    }
+
     // Obtemos a posição da câmera utilizando a inversa da matriz que define o
     // sistema de coordenadas da câmera.
     vec4 origin = vec4(0.0, 0.0, 0.0, 1.0);
@@ -75,33 +81,23 @@ void main()
     // Vetor que define o sentido da reflexão especular ideal.
     vec4 r = -l + 2*n * dot(n, l); // o vetor de reflexão especular ideal
 
+    float U = 0.0;
+    float V = 0.0;
+
+    vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
+
     // Parâmetros que definem as propriedades espectrais da superfície
     vec3 Kd; // Refletância difusa
     vec3 Ks; // Refletância especular
     vec3 Ka; // Refletância ambiente
     float q; // Expoente especular para o modelo de iluminação de Phong
 
-    // Coordenadas de textura U e V
-    float U = 0.0;
-    float V = 0.0;
-
-    vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
-
-    switch (object_id) {
-    case SPACESHIP:
+    if (object_id == SPACESHIP) { // mapeamento de textura
         spherical_mapping(bbox_center, position_model, U, V);
-        Kd = material_diffuse;
+        Kd = texture(TextureImage1, vec2(U,V)).rgb;;
         Ks = material_speculate;
         Ka = material_environment;
         q  = material_specular_exponent;
-        break;
-    case ASTEROID:
-        spherical_mapping(bbox_center, position_model, U, V);
-        Kd = texture(TextureImage0, vec2(U,V)).rgb;
-        Ks = material_speculate;
-        Ka = material_environment;
-        q  = material_specular_exponent;
-        break;
     }
 
     // Espectro da fonte de iluminação
@@ -116,11 +112,12 @@ void main()
     // Termo ambiente
     vec3 ambient_term = Ka * Ia;
 
-    // Termo especular utilizando o modelo de iluminação de Phong
-    vec3 phong_specular_term = Ks * I * max(0, pow(dot(r, v), q));
+    // Termo especular utilizando o modelo de iluminação de Blinn-Phong
+    vec4 h = normalize(v + l);
+    vec3 blinn_specular_term = Ks * I * max(0, pow(dot(n, h), q));
 
     // Cor final do fragmento calculada com uma combinação dos termos difuso,
-    color = lambert_diffuse_term + ambient_term + phong_specular_term;
+    color = lambert_diffuse_term + ambient_term + blinn_specular_term;
 
     // Cor final com correção gamma, considerando monitor sRGB.
     // Veja https://en.wikipedia.org/w/index.php?title=Gamma_correction&oldid=751281772#Windows.2C_Mac.2C_sRGB_and_TV.2Fvideo_standard_gammas
@@ -136,3 +133,4 @@ void spherical_mapping(in vec4 center, in vec4 position, out float U, out float 
     U = (theta + M_PI) / (2*M_PI);
     V = (phi + M_PI_2) / M_PI;
 }
+
