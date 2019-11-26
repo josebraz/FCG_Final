@@ -30,6 +30,7 @@ uniform mat4 projection;
 #define SPACESHIP 0
 #define ASTEROID  1
 uniform int object_id;
+uniform int need_texture; // 1 = apply texture | 0 = otherwise
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
 uniform vec4 bbox_min;
@@ -81,9 +82,6 @@ void main()
     // Vetor que define o sentido da reflexão especular ideal.
     vec4 r = -l + 2*n * dot(n, l); // o vetor de reflexão especular ideal
 
-    float U = 0.0;
-    float V = 0.0;
-
     vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
 
     // Parâmetros que definem as propriedades espectrais da superfície
@@ -93,8 +91,15 @@ void main()
     float q; // Expoente especular para o modelo de iluminação de Phong
 
     if (object_id == SPACESHIP) { // mapeamento de textura
-        spherical_mapping(bbox_center, position_model, U, V);
-        Kd = texture(TextureImage1, vec2(U,V)).rgb;;
+        if (need_texture == 1) {
+            float x = (position_model.x - bbox_min.x) / (bbox_max.x - bbox_min.x);
+            float y = (position_model.y - bbox_min.y) / (bbox_max.y - bbox_min.y);
+            float U = x;
+            float V = y;
+            Kd = texture(TextureImage1, vec2(U,V)).rgb;
+        } else {
+            Kd = material_diffuse;
+        }
         Ks = material_speculate;
         Ka = material_environment;
         q  = material_specular_exponent;

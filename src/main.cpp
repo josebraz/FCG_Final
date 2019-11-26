@@ -155,6 +155,7 @@ GLint model_uniform;
 GLint view_uniform;
 GLint projection_uniform;
 GLint object_id_uniform;
+GLint need_texture_uniform;
 GLint bbox_min_uniform;
 GLint bbox_max_uniform;
 
@@ -258,6 +259,7 @@ int main(int argc, char* argv[])
     view_uniform            = glGetUniformLocation(objectsShader.ID, "view"); // Variável da matriz "view" em shader_vertex.glsl
     projection_uniform      = glGetUniformLocation(objectsShader.ID, "projection"); // Variável da matriz "projection" em shader_vertex.glsl
     object_id_uniform       = glGetUniformLocation(objectsShader.ID, "object_id"); // Variável "object_id" em shader_fragment.glsl
+    need_texture_uniform    = glGetUniformLocation(objectsShader.ID, "need_texture");
     bbox_min_uniform        = glGetUniformLocation(objectsShader.ID, "bbox_min");
     bbox_max_uniform        = glGetUniformLocation(objectsShader.ID, "bbox_max");
 
@@ -487,7 +489,9 @@ int main(int argc, char* argv[])
               * Matrix_Scale(spaceship.scale, spaceship.scale, spaceship.scale);
         glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(object_id_uniform, SPACESHIP);
+        glUniform1i(need_texture_uniform, 1);
         DrawVirtualObject("Cube_Cube_Base");
+        glUniform1i(need_texture_uniform, 0);
         DrawVirtualObject("Cube_Cube_Black");
 
         // Test interception
