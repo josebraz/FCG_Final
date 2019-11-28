@@ -29,6 +29,7 @@ uniform mat4 projection;
 // Identificador que define qual objeto está sendo desenhado no momento
 #define SPACESHIP 0
 #define ASTEROID  1
+#define BULLET    2
 uniform int object_id;
 uniform int need_texture; // 1 = apply texture | 0 = otherwise
 
@@ -52,7 +53,7 @@ out vec3 color;
 
 void main()
 {
-    if (object_id == ASTEROID) {
+    if (object_id == ASTEROID || object_id == BULLET) {
         color = gouraud_color;
         return;
     }
@@ -103,6 +104,11 @@ void main()
         Ks = material_speculate;
         Ka = material_environment;
         q  = material_specular_exponent;
+    } else { // bullet
+        Kd = vec3(1.0f, 0.0f, 0.0f);
+        Ks = vec3(1.0f, 0.0f, 0.0f);
+        Ka = vec3(1.0f, 0.0f, 0.0f);
+        q = 1.0f;
     }
 
     // Espectro da fonte de iluminação

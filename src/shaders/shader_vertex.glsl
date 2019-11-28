@@ -19,6 +19,7 @@ uniform mat4 projection;
 // Identificador que define qual objeto está sendo desenhado no momento
 #define SPACESHIP 0
 #define ASTEROID  1
+#define BULLET    2
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -99,7 +100,9 @@ void main()
     material_environment       = material_environment_coefficients;
     material_specular_exponent = material_specular_exponent_coefficients;
 
-    if (object_id == ASTEROID) {
+    if (object_id == BULLET) {
+        gouraud_color = vec3(1.0, 0.0, 0.0);
+    } else if (object_id == ASTEROID) {
         vec4 light_position = normalize(vec4(1.0,1.0,0.0,1.0));
         vec4 l = normalize(light_position);
         vec4 n = normalize(normal);

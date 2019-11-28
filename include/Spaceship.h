@@ -2,7 +2,8 @@
 #define SPACESHIP_H
 
 #define PI 3.1415f
-#define MAX_SPEED 50.0
+#define MAX_SPEED 10.0
+#define BULLET_SPEED 30.0
 #define SPEED_INCREMENT 3.0
 #define SPEED_DEINCREMENT 10.0
 #define THETA_INCREMENT 4.0
@@ -13,6 +14,9 @@
 #define THETA_MIN -3.1415f
 
 #include <glm/vec4.hpp>
+#include <bullet.h>
+#include <algorithm>
+#include <math.h>
 
 class Spaceship
 {
@@ -34,6 +38,9 @@ class Spaceship
 
         glm::vec4 cartesianDirection();
         float speedGap(float deltaTime);
+        glm::vec4 computeNewPosition(float deltaTime);
+
+        bullet shoot();
 
     protected:
 

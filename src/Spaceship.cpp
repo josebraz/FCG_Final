@@ -1,8 +1,6 @@
 #include "Spaceship.h"
 
-#include <algorithm>
-#include <math.h>
-
+#include <stdio.h>
 Spaceship::Spaceship()
 {
     speed = 0.0f;
@@ -55,4 +53,20 @@ glm::vec4 Spaceship::cartesianDirection()
 float Spaceship::speedGap(float deltaTime)
 {
     return deltaTime * speed;
+}
+
+bullet Spaceship::shoot()
+{
+    float x = BULLET_SPEED * cos(phi) * sin(theta);
+    float y = BULLET_SPEED * sin(phi);
+    float z = BULLET_SPEED * cos(phi) * cos(theta);
+    return bullet(position, glm::vec4(x, y, z, 0.0f));
+}
+
+glm::vec4 Spaceship::computeNewPosition(float deltaTime){
+    glm::vec4 direction        = cartesianDirection();
+    glm::vec4 dir_speed_scaled = direction * speedGap(deltaTime);
+    glm::vec4 new_position     = dir_speed_scaled + position;
+    this->position             = new_position;
+    return new_position;
 }

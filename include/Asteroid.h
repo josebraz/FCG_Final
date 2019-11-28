@@ -23,7 +23,7 @@ class Asteroid
         Asteroid(glm::vec4 pos, std::vector<glm::vec4> control);
         virtual ~Asteroid();
 
-        void computeNextPosition(float deltaTime);
+        void computeNewPosition(float deltaTime);
 
     protected:
 

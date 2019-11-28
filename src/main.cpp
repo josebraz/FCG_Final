@@ -47,6 +47,7 @@
 #include "Asteroid.h"
 #include "Player.h"
 #include "obj_model.h"
+#include "bullet.h"
 
 /// Configurations
 #define MAX_ASTEROIDS 15
@@ -55,6 +56,7 @@
 
 #define SPACESHIP 0
 #define ASTEROID  1
+#define BULLET    2
 
 #define PHI_MAX 1.570796f
 #define PHI_MIN -1.570796f
@@ -66,8 +68,7 @@ Asteroid generateNewAsteroid();
 void gameOver();
 bool testInterseption(Asteroid asteroid, Spaceship spaceship, glm::mat4 model);
 bool testInterseption(Asteroid asteroid1, Asteroid asteroid2);
-bool testInterseption(glm::vec4 center_sphere, float radius_sphere,
-                      glm::vec4 center_radius, glm::vec4 direction_radius);
+bool testInterseption(Asteroid asteroid, bullet b);
 
 // Declaração de várias funções utilizadas em main().  Essas estão definidas
 // logo após a definição de main() neste arquivo.
@@ -167,7 +168,7 @@ GLuint g_NumLoadedTextures = 0;
 Player player = Player();
 Spaceship spaceship = Spaceship();
 std::vector<Asteroid> asteroids;
-
+std::vector<bullet> bullets;
 
 // timing
 float deltaTime = 0.0f;
@@ -178,6 +179,7 @@ bool leftKeyPressed = false;
 bool rightKeyPressed = false;
 bool topKeyPressed = false;
 bool downKeyPressed = false;
+bool spacePressed = false;
 
 int main(int argc, char* argv[])
 {
@@ -272,12 +274,15 @@ int main(int argc, char* argv[])
 
 //    // Carregamos duas imagens para serem utilizadas como textura
     LoadTextureImage("../../data/texture/basalt.jpg");      // TextureImage0
-    LoadTextureImage("../../data/texture/steel.jpg");      // TextureImage1
+    LoadTextureImage("../../data/texture/steel.jpg");       // TextureImage1
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
     ObjModel spheremodel("../../data/SpaceShip.obj", "../../data/");
     ComputeNormals(&spheremodel);
     BuildTrianglesAndAddToVirtualScene(&spheremodel);
+    ObjModel bulletModel("../../data/bullet.obj", "../../data/");
+    ComputeNormals(&bulletModel);
+    BuildTrianglesAndAddToVirtualScene(&bulletModel);
     ObjModel asteroidModel("../../data/asteroid.obj", "../../data/");
     ComputeNormals(&asteroidModel);
     BuildTrianglesAndAddToVirtualScene(&asteroidModel);
@@ -441,6 +446,12 @@ int main(int argc, char* argv[])
             spaceship.speedUp(deltaTime);
         if (downKeyPressed)
             spaceship.brake(deltaTime);
+        if (spacePressed){
+            std::cout << "Shoot!" << std::endl;
+            bullets.push_back(spaceship.shoot());
+            spacePressed = false;
+        }
+
 
         glm::mat4 model = Matrix_Identity();
         glUniformMatrix4fv(view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
@@ -463,9 +474,32 @@ int main(int argc, char* argv[])
                 it++;
             }
         }
+        // remove bullet very far
+        auto it2 = bullets.begin();
+        while (it2 != bullets.end()) {
+            bullet _bullet = *it2;
+            glm::vec4 vecRelative = _bullet.current_position - spaceship.position;
+            if (norm(vecRelative) >= ASTEROIDS_DESTROY_DISTANCE) {
+                it2 = bullets.erase(it2);
+                std::cout << "Remove" << std::endl;
+            } else {
+                it2++;
+            }
+        }
+
+        /////////////////////////////
+        // New objects new positions
+        for (int i = 0; i < bullets.size(); i++) {
+            bullets[i].computeNewPosition(deltaTime);
+            model = Matrix_Translate(bullets[i].current_position)
+                  * Matrix_Scale(0.1f, 0.1f, 0.1f);
+            glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniform1i(object_id_uniform, BULLET);
+            DrawVirtualObject("bullet");
+        }
 
         for (int i = 0; i < asteroids.size(); i++) {
-            asteroids[i].computeNextPosition(deltaTime);
+            asteroids[i].computeNewPosition(deltaTime);
             model = Matrix_Translate(asteroids[i].position)
                   * Matrix_Rotate_Z((float)glfwGetTime() * asteroids[i].rotation.z)
                   * Matrix_Rotate_X((float)glfwGetTime() * asteroids[i].rotation.x)
@@ -477,11 +511,7 @@ int main(int argc, char* argv[])
         }
 
         // Desenhamos o modelo da nave
-        glm::vec4 direction        = spaceship.cartesianDirection();
-        glm::vec4 dir_speed_scaled = direction * spaceship.speedGap(deltaTime);
-        glm::vec4 new_position     = dir_speed_scaled + spaceship.position;
-        // glm::vec4 old_position     = spaceship.position;
-        spaceship.position         = new_position;
+        glm::vec4 new_position = spaceship.computeNewPosition(deltaTime);
         model = Matrix_Translate(new_position.x, new_position.y, new_position.z)
 //              * Matrix_Rotate_Z(0.0f)
               * Matrix_Rotate_X(spaceship.phi)
@@ -494,6 +524,7 @@ int main(int argc, char* argv[])
         glUniform1i(need_texture_uniform, 0);
         DrawVirtualObject("Cube_Cube_Black");
 
+        ////////////////////////
         // Test interception
         for (int i = 0; i < asteroids.size(); i++) {
             if (testInterseption(asteroids[i], spaceship, model)) {
@@ -510,7 +541,12 @@ int main(int argc, char* argv[])
                 }
             }
 
-            // TODO: testar tiro com asteroid
+            for (int j = 0; j < bullets.size(); j++) {
+                if (testInterseption(asteroids[i], bullets[j])) {
+                    player.score += 100;
+                    asteroids.erase(asteroids.begin() + i);
+                }
+            }
         }
 
         // Print game information
@@ -701,8 +737,6 @@ bool testInterseption(Asteroid asteroid, Spaceship spaceship, glm::mat4 model) {
     if ((sphere_radius + spaceship_radius) > distance) {
         // 2) caso passar, testar se algum vertice do modelo da
         //    nave está dentro da esfera. esfera-ponto (custoso)
-
-        // FIXME: aplicação das transformações nos pontos aparentemente não funciona
         std::vector<glm::vec4> vertices = g_VirtualScene["Cube_Cube_Base"].vertices;
         for (int i = 0; i < g_VirtualScene["Cube_Cube_Black"].vertices.size(); i++) {
             vertices.push_back(g_VirtualScene["Cube_Cube_Black"].vertices[i]);
@@ -728,12 +762,15 @@ bool testInterseption(Asteroid asteroid1, Asteroid asteroid2) {
     return (r1 + r2) > distance;
 }
 
-// teste raio-reta
-bool testInterseption(glm::vec4 center_sphere, float radius_sphere,
-                      glm::vec4 center_radius, glm::vec4 direction_radius) {
-    float A = std::pow(norm(direction_radius), 2);
-    float B = dotproduct(scalarproduct(direction_radius, 2.0f), (center_radius - center_sphere));
-    float C = std::pow(norm(center_radius - center_sphere), 2) - std::pow(radius_sphere, 2);
+// teste raio-esfera
+bool testInterseption(Asteroid asteroid, bullet b) {
+    float r = (1/asteroid.scale) * 0.04;
+    glm::vec4 c = b.start_position;
+    glm::vec4 s = asteroid.position;
+    glm::vec4 d = b.direction;
+    float A = std::pow(norm(d), 2);
+    float B = dotproduct(scalarproduct(d, 2.0f), (c - s));
+    float C = std::pow(norm(c - s), 2) - std::pow(r, 2);
 
     float delta = std::pow(B, 2) - 4 * A * C;
     return delta >= 0;
@@ -1158,6 +1195,9 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 // tecla do teclado. Veja http://www.glfw.org/docs/latest/input_guide.html#input_key
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
 {
+    static float old_seconds = (float)glfwGetTime();
+    static float lastShootTime;
+
     // Se o usuário pressionar a tecla ESC, fechamos a janela.
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
@@ -1186,6 +1226,9 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     rightKeyPressed = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
     topKeyPressed = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
     downKeyPressed = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        spacePressed = true;
+    }
 }
 
 // Definimos o callback para impressão de erros da GLFW no terminal

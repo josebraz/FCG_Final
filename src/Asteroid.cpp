@@ -27,7 +27,7 @@ Asteroid::~Asteroid()
     //dtor
 }
 
-void Asteroid::computeNextPosition(float deltaTime) {
+void Asteroid::computeNewPosition(float deltaTime) {
     // calculado por curva de bezier
     t += velocity * deltaTime;
     float b03 = pow((1 - t), 3);
