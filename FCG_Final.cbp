@@ -341,6 +341,7 @@
 		<Unit filename="src/Asteroid.cpp" />
 		<Unit filename="src/Player.cpp" />
 		<Unit filename="src/Spaceship.cpp" />
+		<Unit filename="src/bullet.cpp" />
 		<Unit filename="src/debugger.cpp" />
 		<Unit filename="src/glad.c">
 			<Option compilerVar="CC" />

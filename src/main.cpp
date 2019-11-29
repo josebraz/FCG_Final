@@ -481,7 +481,6 @@ int main(int argc, char* argv[])
             glm::vec4 vecRelative = _bullet.current_position - spaceship.position;
             if (norm(vecRelative) >= ASTEROIDS_DESTROY_DISTANCE) {
                 it2 = bullets.erase(it2);
-                std::cout << "Remove" << std::endl;
             } else {
                 it2++;
             }
@@ -773,7 +772,13 @@ bool testInterseption(Asteroid asteroid, bullet b) {
     float C = std::pow(norm(c - s), 2) - std::pow(r, 2);
 
     float delta = std::pow(B, 2) - 4 * A * C;
-    return delta >= 0;
+    if (delta >= 0) {
+        float t1 = (-B + std::sqrt(delta)) / (2*A);
+        float t2 = (-B - std::sqrt(delta)) / (2*A);
+        return b.t >= t1;
+    } else {
+        return false;
+    }
 }
 
 
@@ -1035,19 +1040,30 @@ unsigned int loadCubemap(std::vector<std::string> faces)
 Asteroid generateNewAsteroid() {
     // converter para coordenadas esfericas
     glm::vec4 c = spaceship.position;
+    glm::vec4 displacement = c - glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
     float rho = ASTEROIDS_SPAWN_DISTANCE;
     float phi = PHI_MIN + static_cast <float> (rand()) /(static_cast<float>(RAND_MAX/(PHI_MAX-PHI_MIN)));
     float theta = THETA_MIN + static_cast <float> (rand()) /(static_cast<float>(RAND_MAX/(THETA_MAX-THETA_MIN)));
     float anti_theta = theta > 0 ? theta - PI : theta + PI;
     float anti_phi = -phi;
 
-    glm::vec4 displacement = c - glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     glm::vec4 start_position = toCartesianFromSpherical(rho, theta, phi) + displacement;
     glm::vec4 end_position = toCartesianFromSpherical(rho, anti_theta, anti_phi) + displacement;
 
+    float phi_gap = PI/4;
+    float rho2 = 3 * ASTEROIDS_SPAWN_DISTANCE / 2;
+    float theta2 = THETA_MIN + static_cast <float> (rand()) /(static_cast<float>(RAND_MAX/(THETA_MAX-THETA_MIN)));
+    float phi2 = phi > 0 ? phi - phi_gap : phi + phi_gap;
+    float anti_theta2 = theta2 > 0 ? theta2 - PI : theta2 + PI;
+    float anti_phi2 = -phi2;
+
+    glm::vec4 start_middle_position = toCartesianFromSpherical(rho2, theta2, phi2) + displacement;
+    glm::vec4 end_middle_position = toCartesianFromSpherical(rho2, anti_theta2, anti_phi2) + displacement;
+
     std::vector<glm::vec4> controlPoints = {start_position,
-                                            spaceship.position, // TODO
-                                            spaceship.position, // TODO
+                                            start_middle_position,
+                                            end_middle_position,
                                             end_position};
     Asteroid newAsteroid(start_position, controlPoints);
 
