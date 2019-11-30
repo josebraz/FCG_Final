@@ -398,9 +398,9 @@ int main(int argc, char* argv[])
         // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
         // e ScrollCallback().
         float r = g_CameraDistance;
-        float y = r*sin(g_CameraPhi);
-        float z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
-        float x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
+        float y = r*sin(g_CameraPhi) + spaceship.position.y - 1.5;
+        float z = r*cos(g_CameraPhi)*cos(g_CameraTheta) + spaceship.position.z + 2.0;
+        float x = r*cos(g_CameraPhi)*sin(g_CameraTheta) + spaceship.position.x;
 
         // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
         // Veja slides 172-182 do documento "Aula_08_Sistemas_de_Coordenadas.pdf".
