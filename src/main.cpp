@@ -50,7 +50,7 @@
 #include "bullet.h"
 
 /// Configurations
-#define MAX_ASTEROIDS 15
+#define MAX_ASTEROIDS 35
 #define ASTEROIDS_SPAWN_DISTANCE 20 // distance relative to spaceship
 #define ASTEROIDS_DESTROY_DISTANCE 25 // distance relative to spaceship
 
@@ -445,14 +445,13 @@ int main(int argc, char* argv[])
             spacePressed = false;
         }
 
-
         glm::mat4 model = Matrix_Identity();
         glUniformMatrix4fv(view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
         // asteroids logic
         float random_float = static_cast <float> (rand()) / static_cast <float> (RAND_MAX * deltaTime);
-        if (random_float < 0.4 && asteroids.size() < MAX_ASTEROIDS) {
+        if (asteroids.size() < MAX_ASTEROIDS) {
             asteroids.push_back(generateNewAsteroid());
         }
 
