@@ -8,7 +8,7 @@
 //                   TRABALHO FINAL
 //
 //                      José Braz
-//                   Mário Figueiró
+//                   Mario Figueiró
 
 #include <cmath>
 #include <cstdio>
@@ -207,7 +207,7 @@ int main(int argc, char* argv[])
     // Criamos uma janela do sistema operacional, com 800 colunas e 600 linhas
     // de pixels, e com título "INF01047 ...".
     GLFWwindow* window;
-    window = glfwCreateWindow(800, 600, "INF01047 - Seu Cartao - Seu Nome", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "ASTEROIDS 3D", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
